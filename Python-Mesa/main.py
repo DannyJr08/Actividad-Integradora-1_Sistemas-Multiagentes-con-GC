@@ -15,13 +15,29 @@
 # Cada celda al inicio entre 0 y 1 cajas
 # Un robot puede solo tener una caja
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+from robot_model import RobotModel
+import time
 
+# Dimensiones del espacio
+M = int(input("Introduce el valor de M: ")) # alto
+N = int(input("Introduce el valor de N: ")) # ancho
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+CANT_AGENTES = 5
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+PORCENTAJE_CELDAS_CON_CAJA = float(input("Introduce el porcentaje inicial de celdas con caja: ")) # Porcentaje de celdas que inicialmente están sucias
+while (PORCENTAJE_CELDAS_CON_CAJA > 0.3):
+    print("El porcentaje de celdas con caja NO debe ser mayor a 30%")
+    PORCENTAJE_CELDAS_CON_CAJA = float(input("Introduce el porcentaje inicial de celdas con caja: "))
+
+TIEMPO_MAX = int(input("Introduce el tiempo máximo de ejecución (segundos): ")) # Tiempo máximo de ejecución del algoritmo
+
+def basic_example():
+    model = RobotModel(CANT_AGENTES, N, M, PORCENTAJE_CELDAS_CON_CAJA, TIEMPO_MAX)
+    while (not model.estanTodasLasCajasYaAcomodadas(N, M) and ((time.time() - model.init_time) < model.final_time)):
+        model.step()
+        print("Cantidad de celdas llenas:", model.celdas_llenas)
+
+    print("Cantidad total de movimientos por todos los agentes:", model.total_movimientos())
+    print("Tiempo total:", model.final_time)
+
+basic_example()
