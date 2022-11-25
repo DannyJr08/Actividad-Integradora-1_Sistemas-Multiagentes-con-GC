@@ -33,7 +33,7 @@ TIEMPO_MAX = int(input("Introduce el tiempo máximo de ejecución (segundos): ")
 
 def basic_example():
     model = RobotModel(CANT_AGENTES, N, M, PORCENTAJE_CELDAS_CON_CAJA, TIEMPO_MAX)
-    while (not model.estanTodasLasCajasYaAcomodadas(N, M) and ((time.time() - model.init_time) < model.final_time)):
+    while (not model.estanTodasLasCajasYaAcomodadas(N, M) and (not model.seAlcanzoLaMaximaCantidadDeCeldasLlenas()) and ((time.time() - model.init_time) < model.final_time)):
         model.step()
         print("Cantidad de celdas llenas:", model.celdas_llenas)
 
