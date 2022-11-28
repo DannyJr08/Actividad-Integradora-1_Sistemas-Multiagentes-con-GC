@@ -37,7 +37,7 @@ def basic_example():
         model.step()
         print("Cantidad de celdas llenas:", model.celdas_llenas)
 
-    print("Cantidad total de movimientos por todos los agentes:", model.total_movimientos())
+    print("Cantidad total de movimientos por todos los agentes:", model.total_mov)
     print("Tiempo total:", model.final_time)
 
 basic_example()
