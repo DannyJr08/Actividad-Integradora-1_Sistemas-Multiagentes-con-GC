@@ -8,7 +8,6 @@ class RobotAgent(mesa.Agent):
     def __init__(self, unique_id, model, anchoMatriz, alturaMatriz): # En los parámetros también se incluye al ancho y altura de la matriz para poder verificiar si todas las celdas ya han sido acmodadas
         super().__init__(unique_id, model)
         self.tieneCaja = False
-        self.recogido_position = None # Se guarda registro de la casilla en la que se recogió una caja.
         self.anchoMatrix = anchoMatriz
         self.alturaMatrix = alturaMatriz
 
@@ -30,24 +29,36 @@ class RobotAgent(mesa.Agent):
             include_center=False)
 
         new_position = self.random.choice(possible_steps) # El agente escoge una posición de manera aleatoria
-        self.recogerCaja(new_position) # Con dicha posición primero revisa su puede recoger una caja de la celda
+        self.recogerCaja(new_position) # Con dicha posición primero revisa si puede recoger una caja de la celda
 
         # Después de revisar si es posible recoger una caja, checa si es posible agregar una caja en la celda.
         # El agente solamente agregará una caja a las celdas que ya cuenten con al menos una caja y menos de 5.
         # No tiene sentido agregar cajas en celdas vacías, lo importante es trabajar con las pilas "ya empezadas".
         self.anadirCaja(new_position) # El agente añade una caja si es posible
 
+        meMovi = True
+
         # Serie de pasos para poder moverse
         if not self.model.hayCaja(new_position): # Si no hay una caja en dicha posición...
-            for i in range(len(possible_neighbors)): # Checa el arreglo de vecinos para ver si no colisiona con uno...
-                if possible_neighbors[i].pos != new_position: # Si alguno de los vecinos no coincide con la posición que planea moverse el agente...
-                    self.model.grid.move_agent(self, new_position)  # El agente se coloca en su nueva posición.
-                    self.model.total_mov += 1 # Se actualiza el contador de movimientos total de los agentes.
-                    break # Y se rompe el ciclo porque ya no tiene sentido seguir verificando sus vecinos.
             if len(possible_neighbors) == 0: # Si el agente no tiene vecinos, directamente cambia de posición.
+                #print("Caso No entré en el For: Yo:", self.unique_id, " me moví a la casilla", new_position)
                 self.model.grid.move_agent(self, new_position)  # El agente se coloca en su nueva posición.
                 self.model.total_mov += 1 # Se actualiza el contador de movimientos total de los agentes.
-        #print("Yo:", self.unique_id, " ahora estoy en la casilla", new_position)
+                print("Fin del Turno")
+                #print("Yo:", self.unique_id, " ahora estoy en la casilla", new_position)
+                return
+            for i in range(len(possible_neighbors)): # Checa el arreglo de vecinos para ver si no colisiona con uno...
+                #print("Caso", i+1, ": Yo estoy en :", self.pos, ": Mi vecino está en la posición:", possible_neighbors[i].pos, "y mi objetivo es:", new_position)
+                if possible_neighbors[i].pos == new_position:
+                    #print("No puede moverme, mi vecino está en mi celda destino")
+                    new_position = self.pos
+                    meMovi = False
+                    break
+            #print("Caso", i + 1, ": Yo estoy en :", self.pos, ": Yo:", self.unique_id, " me moví a la casilla", new_position)
+            self.model.grid.move_agent(self, new_position)  # El agente se coloca en su nueva posición.
+            if meMovi:
+                self.model.total_mov += 1  # Se actualiza el contador de movimientos total de los agentes.
+
         print("Fin del Turno")
 
     # Función que sirve para que el agente rcoja una caja
@@ -66,7 +77,7 @@ class RobotAgent(mesa.Agent):
 
     # Función que hace que el agente añada una caja a una celda.
     def anadirCaja(self, posicion_adyacente):
-        if self.model.hayCaja(posicion_adyacente) and self.tieneCaja: # Si hay una caja en la celda y el agente tiene una caja en sus manipuladores...
+        if self.model.hayCaja(posicion_adyacente) and self.tieneCaja and (not self.model.estaLlena(posicion_adyacente) and (not self.model.estaActivaUnaPrioridad or (self.model.estaActivaUnaPrioridad and self.model.esPrioridad(posicion_adyacente)))): # Si hay una caja en la celda y el agente tiene una caja en sus manipuladores...
             self.model.cambiarAnadirCaja(posicion_adyacente, self.anchoMatrix, self.alturaMatrix) # Llama a la función del modelo para añadir la caja y hacer el cambio efectivo en la matriz para que todos los agentes estén enterados.
             self.tieneCaja = False # Ahora el robot no tiene caja en sus manipuladores.
             print("Añadí una caja a la celda: ", posicion_adyacente)
@@ -76,8 +87,9 @@ class RobotModel(mesa.Model):
     # Se inicializa el modelo.
     def __init__(self, N, width, height, percent, tiempo_max):
         self.num_agents = N # Cantidad de agentes
-        self.schedule = mesa.time.RandomActivation(self)
+        #self.schedule = mesa.time.RandomActivation(self)
         #self.schedule = mesa.time.SimultaneousActivation(self) # Activación de los agentes
+        self.schedule = mesa.time.StagedActivation(self)
         self.grid = mesa.space.SingleGrid(height, width, True) # Incialización del grid. Es SingleGrid porque solo puede haber un agente en cada celda.
         self.init_time = time.time()
         self.final_time = tiempo_max
@@ -89,6 +101,7 @@ class RobotModel(mesa.Model):
         self.num_cajas = self.celdas_iniciales_con_caja
         self.box_matrix = [([0]*width) for i in range(height)] # Al principio todas las celdas se inicializan como 0, es decir, que no tienen cajas.
         self.prioridad_matrix = [([False]*width) for i in range(height)] # Al principio todas las celdas se inicializan como falso, es decir, no hay ninguna prioridad por llenarlas.
+        self.estaActivaUnaPrioridad = False
 
         while (self.celdas_iniciales_con_caja > 0): # Cuando ya no queden celdas por inicializar a vacías
             # Se recorren todas las celdas de la matriz.
@@ -164,13 +177,26 @@ class RobotModel(mesa.Model):
     def cambiarAnadirCaja(self, new_position, ancho, altura):
         x, y = new_position
         self.box_matrix[x][y] += 1 # Se agrega una caja a la celda.
-        print(self.box_matrix[x][y])
+        print("La celda", new_position, "tiene", self.box_matrix[x][y], "cajas")
+
+        contador_cajas_con_prioridad = 0
+
+        for i in range(altura):
+            for j in range(ancho):
+                if self.prioridad_matrix[i][j]:  # Si la celda tiene al menos una caja, pero no está llena...
+                    contador_cajas_con_prioridad += 1  # Se actualiza el contador de celdas restantes.
+
+        if (self.box_matrix[x][y] > 1 and contador_cajas_con_prioridad == 0): # Si la celda ya tiene más de 1 caja
+            self.prioridad_matrix[x][y] = True # Se establece que dicha celda es prioridad.
+            self.estaActivaUnaPrioridad = True
 
         if (self.box_matrix[x][y] == 5): # Si la celda ya tiene la pila de 5 cajas
             self.celdas_llenas += 1 # Se actualiza el contador de celdas llenas.
             self.prioridad_matrix[x][y] = False # Se establece que dicha celda ya no es prioridad.
+            self.estaActivaUnaPrioridad = False
 
         if self.seAlcanzoLaMaximaCantidadDeCeldasLlenas() and self.estanTodasLasCajasYaAcomodadas(ancho, altura): # Si ya se acomodaron todas las cajas posibles
+            print("Terminé a tiempo")
             self.final_time = time.time() - self.init_time # Se calcula el tiempo que duró la ejecución del programa
 
     # Función que compreuba si todas las cajas ya están acomodadas.
