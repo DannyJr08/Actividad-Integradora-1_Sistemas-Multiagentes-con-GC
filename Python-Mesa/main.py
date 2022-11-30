@@ -38,6 +38,6 @@ def basic_example():
         print("Cantidad de celdas llenas:", model.celdas_llenas)
 
     print("Cantidad total de movimientos por todos los agentes:", model.total_mov)
-    print("Tiempo total:", model.final_time)
+    print("Tiempo total:", model.final_time, "segundos")
 
 basic_example()
