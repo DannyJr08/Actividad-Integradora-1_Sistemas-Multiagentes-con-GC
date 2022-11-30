@@ -31,3 +31,4 @@ sysinfo.txt
 *.unitypackage
 .idea/Actividad-Integradora-1_Sistemas-Multiagentes-con-GC.iml
 .idea/misc.xml
+Python-Mesa/__pycache__/robot_model.cpython-310.pyc
