@@ -59,7 +59,9 @@ class RobotAgent(mesa.Agent):
             if meMovi:
                 self.model.total_mov += 1  # Se actualiza el contador de movimientos total de los agentes.
 
-        print("Fin del Turno")
+        print(self.model.box_matrix)
+
+        #print("Fin del Turno")
 
     # Función que sirve para que el agente rcoja una caja
     def recogerCaja(self, posicion_adyacente):
@@ -177,7 +179,7 @@ class RobotModel(mesa.Model):
     def cambiarAnadirCaja(self, new_position, ancho, altura):
         x, y = new_position
         self.box_matrix[x][y] += 1 # Se agrega una caja a la celda.
-        print("La celda", new_position, "tiene", self.box_matrix[x][y], "cajas")
+        #print("La celda", new_position, "tiene", self.box_matrix[x][y], "cajas")
 
         contador_cajas_con_prioridad = 0
 
@@ -199,7 +201,7 @@ class RobotModel(mesa.Model):
             print("Terminé a tiempo")
             self.final_time = time.time() - self.init_time # Se calcula el tiempo que duró la ejecución del programa
 
-    # Función que compreuba si todas las cajas ya están acomodadas.
+    # Función que comprueba si todas las cajas ya están acomodadas.
     def estanTodasLasCajasYaAcomodadas(self, ancho, altura):
         contador_celdas_cajas_restantes = 0 # Contador de celdas con menos de 5 cajas.
         # Se recorre toda la matriz.
